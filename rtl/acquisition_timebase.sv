@@ -17,7 +17,7 @@ module acquisition_timebase #(
     input  wire                      frame_end,
     output reg  [INDEX_WIDTH-1:0]    sample_index,
     output reg  [TIME_WIDTH-1:0]     timestamp_ns,
-    output reg  [SEQ_WIDTH-1:0]      sequence
+    output reg  [SEQ_WIDTH-1:0]      packet_sequence
 );
 
     localparam integer NS_PER_SECOND = 1_000_000_000;
@@ -35,10 +35,10 @@ module acquisition_timebase #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            sample_index <= {INDEX_WIDTH{1'b0}};
-            timestamp_ns <= {TIME_WIDTH{1'b0}};
-            sequence     <= {SEQ_WIDTH{1'b0}};
-            remainder    <= 64'd0;
+            sample_index     <= {INDEX_WIDTH{1'b0}};
+            timestamp_ns     <= {TIME_WIDTH{1'b0}};
+            packet_sequence  <= {SEQ_WIDTH{1'b0}};
+            remainder        <= 64'd0;
         end else if (sample_valid) begin
             sample_index <= sample_index + {{(INDEX_WIDTH-1){1'b0}}, 1'b1};
 
@@ -51,7 +51,7 @@ module acquisition_timebase #(
             end
 
             if (frame_end)
-                sequence <= sequence + {{(SEQ_WIDTH-1){1'b0}}, 1'b1};
+                packet_sequence <= packet_sequence + {{(SEQ_WIDTH-1){1'b0}}, 1'b1};
         end
     end
 
