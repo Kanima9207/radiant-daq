@@ -27,6 +27,7 @@ from .system import (
     SystemHealthConfig,
     SystemHealthStateMachine,
 )
+from .recovery import RecoveryRecord, ProcessingWatchdog, RecoveryManager
 
 __all__ = [
     "IntegrityFinding",
@@ -50,4 +51,7 @@ __all__ = [
     "HealthTransition",
     "SystemHealthConfig",
     "SystemHealthStateMachine",
+    "RecoveryRecord",
+    "ProcessingWatchdog",
+    "RecoveryManager",
 ]
