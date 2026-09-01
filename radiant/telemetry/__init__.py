@@ -7,6 +7,7 @@ from .supervisory import (
     SupervisoryBuffer,
 )
 from .journal import JournalEvent, EventJournal
+from .fault_control import FAULT_OPTIONS, FaultControlResult, FaultInjectionController
 from .backend import DashboardFrame, SupervisoryDemoBackend
 from .dashboard import (
     state_label,
@@ -25,6 +26,9 @@ __all__ = [
     "SupervisoryBuffer",
     "JournalEvent",
     "EventJournal",
+    "FAULT_OPTIONS",
+    "FaultControlResult",
+    "FaultInjectionController",
     "DashboardFrame",
     "SupervisoryDemoBackend",
     "state_label",
