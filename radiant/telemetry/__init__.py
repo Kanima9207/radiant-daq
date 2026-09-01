@@ -8,6 +8,14 @@ from .supervisory import (
 )
 from .journal import JournalEvent, EventJournal
 from .backend import DashboardFrame, SupervisoryDemoBackend
+from .dashboard import (
+    state_label,
+    metric_rows,
+    alarm_rows,
+    recovery_rows,
+    history_rows,
+    journal_rows,
+)
 
 __all__ = [
     "ProcessedPacket",
@@ -19,4 +27,10 @@ __all__ = [
     "EventJournal",
     "DashboardFrame",
     "SupervisoryDemoBackend",
+    "state_label",
+    "metric_rows",
+    "alarm_rows",
+    "recovery_rows",
+    "history_rows",
+    "journal_rows",
 ]
