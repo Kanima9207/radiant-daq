@@ -6,7 +6,7 @@ a hardware/backend integration in a later stage.
 """
 import streamlit as st
 
-from radiant.telemetry import SupervisoryDemoBackend
+from radiant.telemetry import FAULT_OPTIONS, SupervisoryDemoBackend
 from radiant.telemetry.dashboard import (
     state_label,
     alarm_rows,
@@ -28,6 +28,18 @@ with st.sidebar:
     st.header("Demo controls")
     advance = st.button("Advance one frame", use_container_width=True)
     advance_8 = st.button("Advance 8 frames", use_container_width=True)
+
+    st.divider()
+    st.header("Fault injection")
+    selected_fault = st.selectbox(
+        "Simulated fault",
+        FAULT_OPTIONS,
+        format_func=lambda value: value.replace("_", " ").title(),
+    )
+    inject = st.button("Inject selected fault", type="primary", use_container_width=True)
+    st.caption("Runs the selected deterministic scenario through the protected FDIR evaluation stack.")
+
+    st.divider()
     if st.button("Reset demo", use_container_width=True):
         backend.reset()
         st.rerun()
@@ -38,6 +50,8 @@ if advance:
     backend.next_frame()
 if advance_8:
     backend.run(8)
+if inject:
+    backend.inject_fault(selected_fault)
 
 snapshot = backend.latest
 
@@ -51,6 +65,18 @@ cols[1].metric("Active channels", f"{metrics.get('active_channels', 0):.0f}")
 cols[2].metric("Buffer fill", f"{metrics.get('buffer_fill_pct', 0):.1f}%")
 cols[3].metric("Timing RMS", f"{metrics.get('timing_rms_ns', 0):,.1f} ns")
 cols[4].metric("Processing", f"{metrics.get('processing_utilization_pct', 0):.1f}%")
+
+if "fault_detected" in metrics:
+    st.subheader("Injected-fault FDIR outcome")
+    outcome_cols = st.columns(4)
+    outcome_cols[0].metric("Detected", "YES" if metrics.get("fault_detected") else "NO")
+    outcome_cols[1].metric("Contained", "YES" if metrics.get("fault_contained") else "NO")
+    outcome_cols[2].metric("Recovered", "YES" if metrics.get("fault_recovered") else "NO")
+    outcome_cols[3].metric("Fault metric", f"{metrics.get('fault_metric_value', 0):.6g}")
+    st.caption(
+        "Containment means corrupted data/state was prevented from unsafe downstream use. "
+        "Recovery is shown only when protected state was actually restored."
+    )
 
 left, right = st.columns(2)
 with left:
