@@ -10,7 +10,7 @@ module tb_acquisition_timebase;
     reg frame_end = 1'b0;
     wire [63:0] sample_index;
     wire [63:0] timestamp_ns;
-    wire [31:0] sequence;
+    wire [31:0] packet_sequence;
 
     integer accepted;
     integer expected_sequence;
@@ -25,7 +25,7 @@ module tb_acquisition_timebase;
         .frame_end(frame_end),
         .sample_index(sample_index),
         .timestamp_ns(timestamp_ns),
-        .sequence(sequence)
+        .packet_sequence(packet_sequence)
     );
 
     always #5 clk = ~clk;
@@ -42,8 +42,8 @@ module tb_acquisition_timebase;
                 $display("FAIL timestamp expected=%0d got=%0d", expected_timestamp, timestamp_ns);
                 $fatal(1);
             end
-            if (sequence !== expected_sequence) begin
-                $display("FAIL sequence expected=%0d got=%0d", expected_sequence, sequence);
+            if (packet_sequence !== expected_sequence) begin
+                $display("FAIL packet_sequence expected=%0d got=%0d", expected_sequence, packet_sequence);
                 $fatal(1);
             end
         end
