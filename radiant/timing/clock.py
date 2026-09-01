@@ -16,6 +16,8 @@ class LocalClock:
             raise ValueError("offset_ns must be an integer")
         if not isinstance(frequency_error_ppm, (int, float)) or not math.isfinite(frequency_error_ppm):
             raise ValueError("frequency_error_ppm must be finite")
+        if 1.0 + float(frequency_error_ppm) * 1e-6 <= 0:
+            raise ValueError("frequency_error_ppm must keep clock rate positive")
         if not isinstance(jitter_std_ns, (int, float)) or not math.isfinite(jitter_std_ns) or jitter_std_ns < 0:
             raise ValueError("jitter_std_ns must be finite and nonnegative")
         if seed is not None and type(seed) is not int:
