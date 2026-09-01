@@ -21,6 +21,7 @@ from .seu import (
     flip_float64_bit,
     flip_array_element_bit,
 )
+from .clock import ClockFaultEvent, ClockFaultResult, FaultedClock
 
 __all__ = [
     "FaultEvent",
@@ -42,4 +43,7 @@ __all__ = [
     "flip_integer_bit",
     "flip_float64_bit",
     "flip_array_element_bit",
+    "ClockFaultEvent",
+    "ClockFaultResult",
+    "FaultedClock",
 ]
