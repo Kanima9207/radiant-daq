@@ -8,6 +8,12 @@ from .sensor import (
     SensorHealthReport,
     SensorHealthMonitor,
 )
+from .timing import (
+    TimingHealthConfig,
+    TimingFinding,
+    TimingHealthReport,
+    TimingHealthMonitor,
+)
 
 __all__ = [
     "IntegrityFinding",
@@ -18,4 +24,8 @@ __all__ = [
     "ChannelHealth",
     "SensorHealthReport",
     "SensorHealthMonitor",
+    "TimingHealthConfig",
+    "TimingFinding",
+    "TimingHealthReport",
+    "TimingHealthMonitor",
 ]
