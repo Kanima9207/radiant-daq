@@ -9,10 +9,13 @@ from .bridge import (
     encode_external_frame,
     decode_external_frame,
 )
+from .emulator import HardwareEmulatorConfig, SerialHardwareEmulator
 
 __all__ = [
     "ExternalAcquisitionFrame",
     "ExternalAcquisitionBridge",
     "encode_external_frame",
     "decode_external_frame",
+    "HardwareEmulatorConfig",
+    "SerialHardwareEmulator",
 ]
