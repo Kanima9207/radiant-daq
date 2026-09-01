@@ -59,20 +59,22 @@ def flip_array_element_bit(array, index, bit_index):
     if not (np.issubdtype(values.dtype, np.integer) or
             np.issubdtype(values.dtype, np.floating)):
         raise TypeError("array dtype must be integer or floating")
+    normalized = index if isinstance(index, tuple) else (index,)
     try:
-        before = values[index].item()
+        selected = values[normalized]
     except (IndexError, TypeError) as exc:
         raise ValueError("index must select exactly one array element") from exc
-    if isinstance(values[index], np.ndarray):
+    if isinstance(selected, np.ndarray):
         raise ValueError("index must select exactly one array element")
+    before = selected.item()
     width = values.dtype.itemsize * 8
     if type(bit_index) is not int or not 0 <= bit_index < width:
         raise ValueError("bit_index must lie within element width")
     result = values.copy()
     byte_view = result.view(np.uint8).reshape(result.shape + (values.dtype.itemsize,))
     byte_number, bit_number = divmod(bit_index, 8)
-    byte_view[index + (byte_number,)] ^= np.uint8(1 << bit_number)
-    return result, before, result[index].item()
+    byte_view[normalized + (byte_number,)] ^= np.uint8(1 << bit_number)
+    return result, before, result[normalized].item()
 
 
 class DigitalStateBank:
