@@ -14,6 +14,13 @@ from .packet import (
     duplicate_packet,
     reorder_adjacent,
 )
+from .seu import (
+    SEUFaultRecord,
+    DigitalStateBank,
+    flip_integer_bit,
+    flip_float64_bit,
+    flip_array_element_bit,
+)
 
 __all__ = [
     "FaultEvent",
@@ -30,4 +37,9 @@ __all__ = [
     "drop_packet",
     "duplicate_packet",
     "reorder_adjacent",
+    "SEUFaultRecord",
+    "DigitalStateBank",
+    "flip_integer_bit",
+    "flip_float64_bit",
+    "flip_array_element_bit",
 ]
