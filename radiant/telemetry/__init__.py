@@ -6,6 +6,7 @@ from .supervisory import (
     SupervisorySnapshot,
     SupervisoryBuffer,
 )
+from .journal import JournalEvent, EventJournal
 
 __all__ = [
     "ProcessedPacket",
@@ -13,4 +14,6 @@ __all__ = [
     "RecoveryTelemetry",
     "SupervisorySnapshot",
     "SupervisoryBuffer",
+    "JournalEvent",
+    "EventJournal",
 ]
