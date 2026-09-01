@@ -20,6 +20,13 @@ from .state import (
     MirroredStateBank,
     state_crc32,
 )
+from .system import (
+    HealthState,
+    HealthSignal,
+    HealthTransition,
+    SystemHealthConfig,
+    SystemHealthStateMachine,
+)
 
 __all__ = [
     "IntegrityFinding",
@@ -38,4 +45,9 @@ __all__ = [
     "StateIntegrityReport",
     "MirroredStateBank",
     "state_crc32",
+    "HealthState",
+    "HealthSignal",
+    "HealthTransition",
+    "SystemHealthConfig",
+    "SystemHealthStateMachine",
 ]
