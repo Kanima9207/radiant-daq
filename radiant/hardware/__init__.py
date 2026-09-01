@@ -11,6 +11,7 @@ from .bridge import (
 )
 from .emulator import HardwareEmulatorConfig, SerialHardwareEmulator
 from .consumer import ConsumerStats, LiveSerialConsumer
+from .serial_port import SerialPortConfig, PhysicalSerialSource
 
 __all__ = [
     "ExternalAcquisitionFrame",
@@ -21,4 +22,6 @@ __all__ = [
     "SerialHardwareEmulator",
     "ConsumerStats",
     "LiveSerialConsumer",
+    "SerialPortConfig",
+    "PhysicalSerialSource",
 ]
