@@ -13,6 +13,7 @@ dependencies = ["numpy>=1.24,<3"]
 dev = ["pytest>=7,<10"]
 benchmark = ["matplotlib>=3.8,<4"]
 dashboard = ["streamlit>=1.40,<2"]
+serial = ["pyserial>=3.5,<4"]
 
 [tool.setuptools.packages.find]
 include = ["radiant*"]
