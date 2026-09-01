@@ -7,6 +7,7 @@ from .supervisory import (
     SupervisoryBuffer,
 )
 from .journal import JournalEvent, EventJournal
+from .backend import DashboardFrame, SupervisoryDemoBackend
 
 __all__ = [
     "ProcessedPacket",
@@ -16,4 +17,6 @@ __all__ = [
     "SupervisoryBuffer",
     "JournalEvent",
     "EventJournal",
+    "DashboardFrame",
+    "SupervisoryDemoBackend",
 ]
