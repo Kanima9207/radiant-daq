@@ -10,6 +10,7 @@ from .bridge import (
     decode_external_frame,
 )
 from .emulator import HardwareEmulatorConfig, SerialHardwareEmulator
+from .consumer import ConsumerStats, LiveSerialConsumer
 
 __all__ = [
     "ExternalAcquisitionFrame",
@@ -18,4 +19,6 @@ __all__ = [
     "decode_external_frame",
     "HardwareEmulatorConfig",
     "SerialHardwareEmulator",
+    "ConsumerStats",
+    "LiveSerialConsumer",
 ]
