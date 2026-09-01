@@ -216,8 +216,13 @@ def _clock_rows():
     return rows
 
 
+def evaluate_protected_faults():
+    """Return the deterministic protected scenario matrix without persistence."""
+    return tuple(_sensor_rows() + _packet_rows() + _seu_rows() + _clock_rows())
+
+
 def run_protected_fault_benchmark(output_dir="results/faults"):
-    rows = _sensor_rows() + _packet_rows() + _seu_rows() + _clock_rows()
+    rows = list(evaluate_protected_faults())
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     detected = sum(row.detected for row in rows)
