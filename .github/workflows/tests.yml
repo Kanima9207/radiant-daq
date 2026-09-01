@@ -1,5 +1,5 @@
-name: Acquisition core tests
-on: [push, pull_request]
+name: Acquisition and streaming tests
+on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
 jobs:
