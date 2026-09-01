@@ -7,6 +7,7 @@ can render this feed without owning detector or state-machine logic.
 from dataclasses import dataclass
 
 from radiant.fdir.system import HealthState
+from .fault_control import FaultInjectionController
 from .journal import EventJournal
 from .supervisory import (
     AlarmRecord,
@@ -40,6 +41,7 @@ class SupervisoryDemoBackend:
         self.node_id = node_id
         self.buffer = SupervisoryBuffer(capacity)
         self.journal = EventJournal(journal_path)
+        self.fault_controller = FaultInjectionController()
         self._sequence = 0
         self._step = 0
 
@@ -57,6 +59,14 @@ class SupervisoryDemoBackend:
         self._sequence = 0
         self._step = 0
 
+    def _commit_snapshot(self, snapshot):
+        self.buffer.append(snapshot)
+        events = self.journal.record_snapshot(snapshot)
+        frame = DashboardFrame(snapshot, events)
+        self._sequence += 1
+        self._step += 1
+        return frame
+
     def next_frame(self):
         state, metrics, alarms, recoveries = self._scenario(self._step)
         timestamp_ns = self._step * 100_000_000
@@ -69,12 +79,17 @@ class SupervisoryDemoBackend:
             alarms=alarms,
             recoveries=recoveries,
         )
-        self.buffer.append(snapshot)
-        events = self.journal.record_snapshot(snapshot)
-        frame = DashboardFrame(snapshot, events)
-        self._sequence += 1
-        self._step += 1
-        return frame
+        return self._commit_snapshot(snapshot)
+
+    def inject_fault(self, fault):
+        """Inject one deterministic software fault and publish its FDIR result."""
+        snapshot = self.fault_controller.snapshot(
+            fault=fault,
+            sequence=self._sequence,
+            timestamp_ns=self._step * 100_000_000,
+            node_id=self.node_id,
+        )
+        return self._commit_snapshot(snapshot)
 
     def run(self, frames):
         if type(frames) is not int or frames < 1:
