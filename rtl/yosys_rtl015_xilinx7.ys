@@ -1,8 +1,11 @@
 # RADIANT-DAQ RTL-015: Xilinx 7-series logical technology mapping.
 #
 # This flow maps the synthesis-oriented top to Xilinx 7-series primitives using
-# Yosys synth_xilinx. It does NOT perform placement, routing, static timing
-# analysis, bitstream generation, or physical FPGA validation.
+# Yosys synth_xilinx. The design is flattened first so resource counts represent
+# the complete DAQ logic rather than only the wrapper hierarchy.
+#
+# It does NOT perform placement, routing, static timing analysis, bitstream
+# generation, or physical FPGA validation.
 
 read_verilog -sv rtl/acquisition_timebase.sv
 read_verilog -sv rtl/threshold_trigger.sv
@@ -21,6 +24,7 @@ read_verilog -sv rtl/fault_tolerant_daq_node.sv
 read_verilog -sv rtl/radiant_daq_synth_top.sv
 
 hierarchy -check -top radiant_daq_synth_top
+flatten
 synth_xilinx -family xc7 -top radiant_daq_synth_top
 check
 stat
