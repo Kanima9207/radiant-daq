@@ -13,8 +13,19 @@ TB = ROOT / "rtl" / "tb" / "tb_threshold_trigger.sv"
 def _simulator_tools():
     iverilog = shutil.which("iverilog")
     vvp = shutil.which("vvp")
+
+    # Windows/MSYS2 fallback: allow the tests to find a standard UCRT64
+    # installation even when C:\\msys64\\ucrt64\\bin is not on PowerShell PATH.
     if not iverilog or not vvp:
-        pytest.skip("Icarus Verilog not installed; RTL simulation skipped")
+        msys2_bin = Path(r"C:\msys64\ucrt64\bin")
+        candidate_iverilog = msys2_bin / "iverilog.exe"
+        candidate_vvp = msys2_bin / "vvp.exe"
+        if candidate_iverilog.is_file() and candidate_vvp.is_file():
+            iverilog = str(candidate_iverilog)
+            vvp = str(candidate_vvp)
+
+    if not iverilog or not vvp:
+        pytest.skip("Icarus Verilog not found on PATH or in C:\\msys64\\ucrt64\\bin")
     return iverilog, vvp
 
 
