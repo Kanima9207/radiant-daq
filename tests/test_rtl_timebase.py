@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -13,9 +14,12 @@ TB = ROOT / "rtl" / "tb" / "tb_acquisition_timebase.sv"
 def _simulator_tools():
     iverilog = shutil.which("iverilog")
     vvp = shutil.which("vvp")
+    simulator_env = os.environ.copy()
 
     # Windows/MSYS2 fallback: allow the tests to find a standard UCRT64
     # installation even when C:\\msys64\\ucrt64\\bin is not on PowerShell PATH.
+    # The bin directory must also be on the child-process PATH so Windows can
+    # resolve the MSYS2/UCRT runtime DLLs required by iverilog.exe and vvp.exe.
     if not iverilog or not vvp:
         msys2_bin = Path(r"C:\msys64\ucrt64\bin")
         candidate_iverilog = msys2_bin / "iverilog.exe"
@@ -23,15 +27,16 @@ def _simulator_tools():
         if candidate_iverilog.is_file() and candidate_vvp.is_file():
             iverilog = str(candidate_iverilog)
             vvp = str(candidate_vvp)
+            simulator_env["PATH"] = str(msys2_bin) + os.pathsep + simulator_env.get("PATH", "")
 
     if not iverilog or not vvp:
         pytest.skip("Icarus Verilog not found on PATH or in C:\\msys64\\ucrt64\\bin")
-    return iverilog, vvp
+    return iverilog, vvp, simulator_env
 
 
 @pytest.mark.parametrize("sample_rate_hz", [50_000, 48_000])
 def test_acquisition_timebase_matches_reference(sample_rate_hz, tmp_path):
-    iverilog, vvp = _simulator_tools()
+    iverilog, vvp, simulator_env = _simulator_tools()
     output = tmp_path / "timebase.vvp"
 
     compile_result = subprocess.run(
@@ -47,6 +52,7 @@ def test_acquisition_timebase_matches_reference(sample_rate_hz, tmp_path):
         capture_output=True,
         text=True,
         check=False,
+        env=simulator_env,
     )
     assert compile_result.returncode == 0, compile_result.stderr
 
@@ -55,6 +61,7 @@ def test_acquisition_timebase_matches_reference(sample_rate_hz, tmp_path):
         capture_output=True,
         text=True,
         check=False,
+        env=simulator_env,
     )
     assert run_result.returncode == 0, run_result.stdout + run_result.stderr
     assert f"PASS RTL-001 SAMPLE_RATE_HZ={sample_rate_hz}" in run_result.stdout
