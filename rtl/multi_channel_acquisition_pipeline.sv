@@ -1,9 +1,13 @@
-// RADIANT-DAQ RTL-004: multi-channel acquisition, triggering, and event arbitration.
+// RADIANT-DAQ RTL-004/005: multi-channel acquisition, triggering, and event arbitration.
 //
 // One deterministic acquisition timebase is shared by all channels. Each channel
 // has an independent threshold/hysteresis/holdoff detector. Triggered events are
 // captured into a one-entry pending slot per channel, then serialized by a
 // deterministic fixed-priority arbiter (lowest channel number first).
+//
+// RTL-005 adds a ready/valid handshake at the serialized event output. Pending
+// events are retired only when event_valid && event_ready, allowing a downstream
+// FIFO or packetizer to apply backpressure without silently losing events.
 //
 // A sticky event_overflow flag reports when a channel produces a new trigger
 // while its previous pending event is still waiting and is not being consumed
@@ -13,13 +17,13 @@
 // FPGA timing/resource performance is claimed.
 
 module multi_channel_acquisition_pipeline #(
-    parameter integer CHANNELS        = 8,
-    parameter integer SAMPLE_RATE_HZ  = 50_000,
-    parameter integer SAMPLE_WIDTH    = 16,
-    parameter integer INDEX_WIDTH     = 64,
-    parameter integer TIME_WIDTH      = 64,
-    parameter integer SEQ_WIDTH       = 32,
-    parameter integer HOLDOFF_WIDTH   = 32,
+    parameter integer CHANNELS         = 8,
+    parameter integer SAMPLE_RATE_HZ   = 50_000,
+    parameter integer SAMPLE_WIDTH     = 16,
+    parameter integer INDEX_WIDTH      = 64,
+    parameter integer TIME_WIDTH       = 64,
+    parameter integer SEQ_WIDTH        = 32,
+    parameter integer HOLDOFF_WIDTH    = 32,
     parameter integer CHANNEL_ID_WIDTH = (CHANNELS <= 1) ? 1 : $clog2(CHANNELS)
 ) (
     input  wire                                      clk,
@@ -30,6 +34,7 @@ module multi_channel_acquisition_pipeline #(
     input  wire signed [CHANNELS*SAMPLE_WIDTH-1:0]  threshold_high,
     input  wire signed [CHANNELS*SAMPLE_WIDTH-1:0]  threshold_low,
     input  wire        [CHANNELS*HOLDOFF_WIDTH-1:0] holdoff_samples,
+    input  wire                                      event_ready,
 
     output wire [INDEX_WIDTH-1:0]                   next_sample_index,
     output wire [TIME_WIDTH-1:0]                    next_timestamp_ns,
@@ -135,8 +140,9 @@ module multi_channel_acquisition_pipeline #(
     end
 
     // Capture new channel events and retire at most one arbitrated event/cycle.
-    // If a channel is being retired while it also produces a new event, the new
-    // event replaces the consumed slot with no loss.
+    // Retirement requires a completed ready/valid handshake. If a channel is
+    // being retired while it also produces a new event, the new event replaces
+    // the consumed slot with no loss.
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             pending_reg        <= {CHANNELS{1'b0}};
@@ -146,7 +152,8 @@ module multi_channel_acquisition_pipeline #(
             event_overflow     <= 1'b0;
         end else begin
             for (seq_i = 0; seq_i < CHANNELS; seq_i = seq_i + 1) begin
-                if (grant_valid && grant_channel == seq_i[CHANNEL_ID_WIDTH-1:0]) begin
+                if (grant_valid && event_ready &&
+                    grant_channel == seq_i[CHANNEL_ID_WIDTH-1:0]) begin
                     if (channel_trigger_pulses[seq_i]) begin
                         pending_reg[seq_i] <= 1'b1;
                         pending_indices[seq_i*INDEX_WIDTH +: INDEX_WIDTH]
