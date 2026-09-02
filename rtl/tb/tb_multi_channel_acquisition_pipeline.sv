@@ -10,6 +10,7 @@ module tb_multi_channel_acquisition_pipeline;
     reg rst_n = 1'b0;
     reg sample_valid = 1'b0;
     reg frame_end = 1'b0;
+    reg event_ready = 1'b1;
     reg signed [CHANNELS*SAMPLE_WIDTH-1:0] sample_values = 0;
     reg signed [CHANNELS*SAMPLE_WIDTH-1:0] threshold_high = 0;
     reg signed [CHANNELS*SAMPLE_WIDTH-1:0] threshold_low = 0;
@@ -43,6 +44,7 @@ module tb_multi_channel_acquisition_pipeline;
         .threshold_high(threshold_high),
         .threshold_low(threshold_low),
         .holdoff_samples(holdoff_samples),
+        .event_ready(event_ready),
         .next_sample_index(next_sample_index),
         .next_timestamp_ns(next_timestamp_ns),
         .packet_sequence(packet_sequence),
@@ -131,14 +133,12 @@ module tb_multi_channel_acquisition_pipeline;
             $fatal(1);
         end
 
-        // Sample 0: all channels below threshold.
         drive_sample(16'sd100, 16'sd100, 16'sd100, 16'sd100, 1'b0);
         if (channel_trigger_pulses !== 4'b0000) begin
             $display("FAIL unexpected trigger on sample 0");
             $fatal(1);
         end
 
-        // Sample 1: CH1 and CH3 trigger simultaneously. Both must be retained.
         drive_sample(16'sd100, 16'sd1200, 16'sd100, 16'sd1400, 1'b0);
         if (channel_trigger_pulses !== 4'b1010) begin
             $display("FAIL expected simultaneous CH1/CH3 trigger pulses got=%b",
@@ -146,7 +146,6 @@ module tb_multi_channel_acquisition_pipeline;
             $fatal(1);
         end
 
-        // Capture trigger pulses into pending slots. Lowest channel wins first.
         idle_cycle();
         if (pending_events !== 4'b1010) begin
             $display("FAIL pending events expected=1010 got=%b", pending_events);
@@ -154,7 +153,6 @@ module tb_multi_channel_acquisition_pipeline;
         end
         expect_event(2'd1, 64'd1, 64'd20000, 16'sd1200);
 
-        // Retire CH1. CH3 must remain and become the next event.
         idle_cycle();
         if (pending_events !== 4'b1000) begin
             $display("FAIL CH3 was not preserved pending=%b", pending_events);
@@ -162,7 +160,6 @@ module tb_multi_channel_acquisition_pipeline;
         end
         expect_event(2'd3, 64'd1, 64'd20000, 16'sd1400);
 
-        // Retire CH3; event stream becomes empty.
         idle_cycle();
         if (event_valid !== 1'b0 || pending_events !== 4'b0000) begin
             $display("FAIL event queue did not drain pending=%b valid=%0b",
@@ -170,7 +167,6 @@ module tb_multi_channel_acquisition_pipeline;
             $fatal(1);
         end
 
-        // Sample 2: independent CH2 event and end-of-frame sequence increment.
         drive_sample(16'sd100, 16'sd100, 16'sd1300, 16'sd100, 1'b1);
         if (channel_trigger_pulses !== 4'b0100) begin
             $display("FAIL expected CH2 trigger got=%b", channel_trigger_pulses);
