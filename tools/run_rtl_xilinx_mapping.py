@@ -28,6 +28,11 @@ def find_yosys():
     return None, None
 
 
+def _normalize_cell_type(cell_type: str) -> str:
+    """Normalize escaped Yosys/Xilinx primitive identifiers such as \\LUT6."""
+    return cell_type.lstrip("\\")
+
+
 def main():
     BUILD.mkdir(exist_ok=True)
     yosys, msys2_bin = find_yosys()
@@ -69,7 +74,8 @@ def main():
 
     by_type = {}
     for cell in cells.values():
-        cell_type = cell.get("type", "unknown")
+        raw_type = cell.get("type", "unknown")
+        cell_type = _normalize_cell_type(raw_type)
         by_type[cell_type] = by_type.get(cell_type, 0) + 1
 
     lut_count = sum(count for name, count in by_type.items() if name.startswith("LUT"))
