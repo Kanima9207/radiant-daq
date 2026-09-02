@@ -1,6 +1,7 @@
-# RADIANT-DAQ RTL-014 generic Yosys synthesis flow.
-# Produces a generic synthesized JSON netlist for resource/cell analysis.
-# No device family, placement, routing, timing closure, or physical I/O is implied.
+# RADIANT-DAQ RTL-014B flattened generic Yosys synthesis flow.
+# Produces a flattened generic synthesized JSON netlist for meaningful
+# resource/cell analysis. No device family, placement, routing, timing closure,
+# or physical I/O is implied.
 
 read_verilog -sv rtl/acquisition_timebase.sv
 read_verilog -sv rtl/threshold_trigger.sv
@@ -19,11 +20,12 @@ read_verilog -sv rtl/fault_tolerant_daq_node.sv
 read_verilog -sv rtl/radiant_daq_synth_top.sv
 
 hierarchy -check -top radiant_daq_synth_top
+flatten
 proc
 opt
-memory
-opt
 fsm
+opt
+memory
 opt
 techmap
 opt
