@@ -5,8 +5,9 @@
 // including when the FIFO is full, so sustained one-event-per-cycle flow does
 // not incur unnecessary bubbles.
 //
-// fifo_overflow is sticky and asserts if an upstream source violates the
-// ready/valid contract by presenting valid data while input_ready is low.
+// fifo_overflow is a sticky internal safety diagnostic. Normal ready/valid
+// backpressure (input_valid high while input_ready low) is not an overflow; the
+// upstream source is expected to hold its event stable until accepted.
 
 module event_fifo #(
     parameter integer DEPTH            = 8,
@@ -73,7 +74,9 @@ module event_fifo #(
             occupancy <= {COUNT_WIDTH{1'b0}};
             fifo_overflow <= 1'b0;
         end else begin
-            if (input_valid && !input_ready)
+            // This condition should be unreachable because input_ready prevents
+            // a push into a full FIFO unless a simultaneous pop occurs.
+            if (do_push && full && !do_pop)
                 fifo_overflow <= 1'b1;
 
             if (do_push) begin
