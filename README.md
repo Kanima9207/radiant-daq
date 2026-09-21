@@ -1,47 +1,131 @@
 # RADIANT-DAQ
 
-**A software-first scientific data acquisition platform developing fault-tolerant acquisition, distributed timing and diagnostic evidence capture.**
+**Fault-tolerant, software-first scientific data acquisition with distributed timing, FDIR, supervisory telemetry, HIL emulation, and synthesizable SystemVerilog.**
 
-RADIANT-DAQ investigates whether an instrumentation node can identify unreliable measurements, preserve useful diagnostic evidence and maintain a common simulated timebase under controlled faults. This independent student project is not affiliated with CERN.
+RADIANT-DAQ is an independent instrumentation project exploring how a multi-channel DAQ node can acquire and timestamp signals, preserve event evidence, detect corrupted data or state, and move into bounded recovery/safe-state behaviour. The project is not affiliated with CERN.
 
-## Current status: Stage 2 distributed timing verified
+> **Validation boundary:** current evidence comes from deterministic software simulation, software hardware-emulation, RTL simulation, Yosys synthesis, and Xilinx 7-series logical mapping. Physical FPGA/ADC validation and post-route timing closure are **not** claimed.
 
-Implemented and tested:
-- Configurable ideal ADC (16-bit, ±10 V by default), quantisation and per-sample clipping flags.
-- Eight-channel chunk acquisition with channel IDs, packet sequence numbers and continuous sample indices.
-- Causal FIR filtering with preserved state, explicit validity propagation and group-delay metadata.
-- Per-channel threshold triggering with hysteresis and holdoff.
-- Bounded raw/processed sample ring buffer.
-- Trigger-centred flight recorder with explicit pre/post-window completeness.
-- Persistent event records with metadata, compressed NumPy sample payloads, SHA-256 integrity checking and replay.
-- Independent simulated node clocks with configurable offset, ppm error and seeded jitter.
-- Affine offset/frequency-drift synchronization estimator and timestamp correction.
-- Four-timestamp network exchanges with propagation delay, jitter and explicit forward/reverse asymmetry.
-- Reproducible distributed-timing benchmark with JSON/CSV evidence and optional plots.
+## At a glance
 
-Fault injection, FDIR/recovery policies, CRC-protected transport, dashboard, RTL and physical hardware validation are **not yet demonstrated**. No radiation tolerance, safety certification, White Rabbit implementation or physical sub-microsecond synchronization is claimed.
+| Area | Current evidence |
+|---|---|
+| Acquisition | 8-channel software DAQ at 50 ksample/s/channel; 16-bit ideal ADC; FIR filtering; hysteretic threshold trigger; ring buffer and event records |
+| Distributed timing | +25 ppm and -18 ppm simulated nodes corrected from 1.836 ms / 1.321 ms RMS error to 256.7 ns / 259.7 ns |
+| Fault tolerance | Protected 15-scenario benchmark detects all configured scenarios; 600-trial seeded RTL campaign reports 100% detection/containment and 0 false alarms within that campaign |
+| HIL emulator | 100/100 frames accepted; 25,600 samples; ~189.8 ksample/s host-side ingest in the recorded run |
+| RTL verification | 363 pytest tests passing in the current local regression; Icarus Verilog-backed RTL tests included |
+| FPGA mapping | Xilinx 7-series logical mapping: 2,633 cells, ~639 LUTs, 474 FFs, 174 CARRY4, 101 MUXF |
+| Timing intent | 100 MHz / 10 ns implementation target; physical P&R and static timing closure not yet demonstrated |
+| Supervisor | Streamlit console with health state, alarms, recovery actions, trends, journal, and deterministic fault injection |
 
-## Distributed timing benchmark
+## System architecture
 
-The verified TIMING-004 simulation used two independently drifting nodes:
+```text
+Sensor / simulated source
+        |
+        v
++----------------------+     +----------------------+
+| Acquisition + ADC    | --> | FIR + trigger        |
+| channel/sample/time  |     | hysteresis/holdoff   |
++----------------------+     +----------------------+
+        |                           |
+        +------------+--------------+
+                     v
+             +---------------+
+             | Event buffer  |
+             | + packetizer  |
+             +---------------+
+                     |
+                     v
+             +---------------+
+             | CRC / sequence|
+             | link monitor  |
+             +---------------+
+                     |
+                     v
+             +---------------+
+             | FDIR + health |
+             | safe-state    |
+             +---------------+
+                     |
+          +----------+----------+
+          v                     v
++------------------+   +------------------+
+| Telemetry/journal|   | RTL/FPGA evidence|
+| Streamlit console|   | synth + mapping  |
++------------------+   +------------------+
+```
+
+The software path preserves source sample indices and timestamps through filtering and event capture. The RTL path implements acquisition timing, multi-channel triggering, buffering, packet transport/integrity monitoring, health scoring, and safe-state control.
+
+## Key benchmark evidence
+
+### Distributed timing
+
+The TIMING-004 deterministic simulation uses two independently drifting local clocks.
 
 | Metric | Node A | Node B |
 |---|---:|---:|
 | Configured drift | +25.000 ppm | -18.000 ppm |
-| Estimated drift | +25.000 ppm | -18.000 ppm |
-| RMS timing error before correction | 1,835,847.9 ns | 1,320,579.5 ns |
-| Peak timing error before correction | 3,117,637.0 ns | 2,243,289.0 ns |
-| RMS timing error after correction | 256.7 ns | 259.7 ns |
-| Peak timing error after correction | 820.0 ns | 896.0 ns |
-| RMS improvement | 7151.5× | 5084.2× |
+| RMS error before correction | 1,835,847.9 ns | 1,320,579.5 ns |
+| RMS error after correction | 256.7 ns | 259.7 ns |
+| Peak error after correction | 820.0 ns | 896.0 ns |
+| RMS improvement | 7151.5x | 5084.2x |
 
-Under this deterministic simulated network benchmark, affine correction reduced RMS timestamp error from roughly 1.3–1.8 ms to roughly 257–260 ns. These are simulation results, not hardware timing measurements. The timing model also exposes the symmetric-path assumption: forward/reverse path asymmetry creates a corresponding offset bias rather than being hidden.
+These are simulated synchronization results, not physical clock-distribution measurements. See [TIMING-001 verification](docs/verification/TIMING-001.md).
 
-See [timing verification](docs/verification/TIMING-001.md).
+### Fault detection and containment
+
+The fault framework covers sensor/ADC, transport, digital-state, and timing faults. The protected software benchmark retains the original 15-scenario matrix and verifies detection of all configured scenarios, while only claiming recovery where state is actually restored.
+
+The RTL reliability campaign independently exercises CRC corruption, protocol corruption, packet drop/gap, duplicate, reorder, and silence/watchdog faults. The seeded randomized campaign runs **600 trials** and asserts **100% detection and containment for injected fault trials with zero false alarms for clean controls within that configured campaign**.
+
+Relevant evidence:
+- [Deterministic RTL fault campaign](rtl/tb/tb_fault_campaign.sv)
+- [600-trial randomized RTL campaign](rtl/tb/tb_random_fault_campaign.sv)
+- [Protected software benchmark tests](tests/test_protected_fault_benchmark.py)
+
+### Software HIL
+
+`run_hil_demo.py` drives the serial-compatible ingestion path from a software hardware emulator. The recorded HW-003 run accepted **100/100 frames**, **25,600 samples**, with approximately **189,779 samples/s host-side ingestion throughput**. This is host/emulator performance, not a physical serial-link guarantee.
+
+### RTL and FPGA mapping
+
+The synthesizable RTL is regression-tested with Icarus Verilog and mapped with Yosys to Xilinx 7-series primitives.
+
+| RTL-016 readiness metric | Result |
+|---|---:|
+| Mapped cells | 2,633 |
+| Estimated LUTs | 639 |
+| Estimated flip-flops | 474 |
+| CARRY4 | 174 |
+| MUXF7 + MUXF8 | 101 |
+| Clock target | 100 MHz |
+| Clock period | 10.000 ns |
+| Logical mapping | PASS |
+| Physical place-and-route | Not performed |
+| Static timing closure | Not claimed |
+| Physical FPGA validation | Not performed |
+
+Committed evidence: [RTL-016 JSON](results/rtl/rtl016_implementation_readiness.json) and [human-readable report](results/rtl/rtl016_implementation_readiness.txt).
+
+The repository also contains an XC7A35T implementation wrapper, constraint, and optional nextpnr-Xilinx runner. Those files make the physical implementation boundary explicit; they do not turn the 100 MHz target into a measured Fmax.
+
+## Six-stage roadmap
+
+| Stage | Status | Evidence |
+|---|---|---|
+| 1. Acquisition core | **Complete** | ADC model, metadata, FIR, trigger, buffering, event persistence/replay |
+| 2. Distributed timing | **Complete in simulation** | Offset/drift model, network asymmetry, quantitative correction benchmark |
+| 3. Fault injection | **Complete in simulation** | Sensor, ADC, transport, timing and SEU-style state corruption |
+| 4. FDIR / recovery | **Complete for configured campaigns** | Detection, containment, protected-state restore, health and safe-state logic |
+| 5. Supervisor | **Complete as software demo** | Telemetry, alarm/recovery journal, trends and Streamlit fault controls |
+| 6. FPGA / HIL validation | **Implementation-ready; physical validation pending** | Software HIL, RTL regression, synthesis, Xilinx-7 mapping, 100 MHz timing intent |
 
 ## Run locally
 
-Python 3.10 or newer:
+Requires Python 3.10+.
 
 ```sh
 git clone https://github.com/Kanima9207/radiant-daq.git
@@ -49,7 +133,19 @@ cd radiant-daq
 python -m venv .venv
 ```
 
-Activate on Windows PowerShell with `.venv\Scripts\Activate.ps1`, or on Linux/macOS with `source .venv/bin/activate`. Then:
+Activate the environment:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Linux/macOS:
+
+```sh
+source .venv/bin/activate
+```
+
+Install and run the regression:
 
 ```sh
 python -m pip install -r requirements.txt
@@ -57,36 +153,51 @@ python -m pytest -q
 python run_radiant.py
 ```
 
-For the timing benchmark and plots:
+Optional benchmark/dashboard dependencies:
 
 ```sh
-python -m pip install -e ".[dev,benchmark]"
+python -m pip install -e ".[dev,benchmark,dashboard]"
 python -m radiant.timing.benchmark
+python run_hil_demo.py
+streamlit run streamlit_app.py
 ```
 
-The acquisition demonstration processes four 5,000-sample chunks across eight channels at 50 ksample/s per channel, filters a 1 kHz signal plus 10 kHz interference, and detects three CH0 pulses. A 7,500-sample ring retains indices 12,500–19,999. The 63-tap FIR has 31 samples / 620 µs group delay at 50 ksample/s. Default ADC resolution is 0.30517578 mV/LSB. These are simulation/configuration values, not hardware measurements.
+For Xilinx logical mapping, install Yosys and run:
 
-## Measurement conventions
+```sh
+python tools/run_rtl_xilinx_mapping.py
+python tools/run_rtl_implementation_readiness.py
+```
 
-Input shape is `(samples, channels)`, with zero-based channel IDs and simultaneous sampling. The ideal ADC uses `2**bits` bins over `[v_min, v_max)`, floor coding and midpoint reconstruction. Upper-full-scale input is flagged as clipped; in-range reconstruction error is bounded by half an LSB.
+The optional physical P&R runner requires `nextpnr-xilinx` plus an XC7A35T chip database and is intentionally separate from the logical-mapping readiness benchmark.
 
-Stage-1 nominal timestamps use `floor(sample_index * 1e9 / sample_rate_hz)`. They represent simulated acquisition time, not UTC or host packet-arrival time. Timing modules then model independent local clocks relative to that reference timeline. Timing correction does not establish traceability to a physical master clock.
+## Repository map
 
-Filtering preserves source timestamps. Trigger timestamps identify filtered threshold crossings and carry filter-delay metadata; they do not claim physical pulse-onset time. Startup/clipping validity propagates through the FIR and suppresses untrustworthy trigger arming.
+```text
+radiant/        Python acquisition, timing, faults, FDIR, hardware-emulation and telemetry
+rtl/            Synthesizable SystemVerilog and RTL testbenches
+tests/          Python + simulator-backed regression suite
+tools/          Reproducible synthesis/mapping/implementation runners
+constraints/    FPGA timing / implementation intent
+docs/           Requirements, architecture and verification notes
+results/rtl/    Committed RTL-016 evidence
+run_radiant.py  End-to-end acquisition demonstration
+run_hil_demo.py Software hardware-emulator ingestion demo
+streamlit_app.py Supervisory dashboard
+```
 
-Event records retain captured arrays and explicitly state whether requested pre/post-trigger history is complete. Persistent records use local filesystem storage and SHA-256 integrity verification; this is corruption detection, not cryptographic authentication or redundant archival storage.
+## Engineering conventions and claim discipline
 
-Each streaming consumer validates packet ordering and metadata before state advances. Automatic stream recovery is intentionally deferred to the FDIR stage.
+- Input arrays use `(samples, channels)` with zero-based channel IDs and simultaneous sampling.
+- The ideal ADC uses `2**bits` bins over `[v_min, v_max)`; the default 16-bit ±10 V configuration gives **0.30517578 mV/LSB**.
+- The 63-tap FIR has a 31-sample group delay, **620 us at 50 ksample/s**.
+- Trigger timestamps identify filtered threshold crossings and carry filter-delay metadata; they are not estimates of analog pulse onset.
+- Persistent event records use SHA-256 integrity verification for corruption detection, not authentication.
+- "100 MHz" means **declared implementation target** until a routed timing report demonstrates closure.
+- "Fault coverage" refers only to the explicitly configured deterministic/randomized campaigns; no universal reliability or radiation-tolerance claim is made.
 
-## Roadmap
+## Project scope
 
-1. **Acquisition core — complete:** ADC, packet metadata, streaming FIR, triggering, buffering, event recording, persistence and replay.
-2. **Distributed timing — complete in simulation:** local clock models, offset/drift estimation, network delay/jitter/asymmetry and quantitative benchmark.
-3. **Fault injection — next:** sensor, ADC, packet, clock and register/SEU-style corruption with independent ground truth.
-4. **Diagnostics and recovery:** detection, isolation, trust state and explicitly bounded recovery policies.
-5. **Supervisor:** alarms, event/health views, timing status and visualization.
-6. **Hardware validation:** analog front end, ADC and MCU/FPGA integration.
+RADIANT-DAQ is a student engineering/research project intended to demonstrate disciplined instrumentation development: requirements, simulation, quantitative benchmarking, fault injection, FDIR, RTL verification, synthesis evidence, and explicit validation boundaries.
 
-Requirements and evidence: [DAQ-CORE-001](docs/requirements/DAQ-CORE-001.md), [DAQ-CORE-002](docs/requirements/DAQ-CORE-002.md), [DAQ-CORE-003](docs/requirements/DAQ-CORE-003.md), [TIMING-001](docs/requirements/TIMING-001.md), [DAQ verification](docs/verification/DAQ-CORE-002.md), [event-record verification](docs/verification/DAQ-CORE-003.md), [timing verification](docs/verification/TIMING-001.md), and [architecture](docs/architecture/overview.md).
-
-Earlier DAQ/DSP work lives separately in [cern-signal-acquisition](https://github.com/Kanima9207/cern-signal-acquisition); results from that project are not claimed as results of this implementation.
+Earlier DSP/DAQ work is maintained separately in [cern-signal-acquisition](https://github.com/Kanima9207/cern-signal-acquisition); results from that repository are not claimed as RADIANT-DAQ results.
