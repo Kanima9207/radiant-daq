@@ -6,6 +6,10 @@ RADIANT-DAQ is an independent instrumentation project exploring how a multi-chan
 
 > **Validation boundary:** current evidence comes from deterministic software simulation, software hardware-emulation, RTL simulation, Yosys synthesis, and Xilinx 7-series logical mapping. Physical FPGA/ADC validation and post-route timing closure are **not** claimed.
 
+### [Launch the live RADIANT-DAQ Supervisory Console](https://radiant-daq-demo.streamlit.app/)
+
+Explore deterministic telemetry, fault injection, alarms, recovery actions, and operational trends in the deployed software-simulation demo.
+
 ## At a glance
 
 | Area | Current evidence |
