@@ -1,0 +1,33 @@
+RADIANT-DAQ RTL-016 IMPLEMENTATION READINESS
+====================================================
+
+Status                 : PASS
+Top                    : radiant_daq_synth_top
+Target family          : xilinx_7series
+Clock target           : 100.0 MHz
+Clock period           : 10.000 ns
+
+Xilinx-7 logical mapping
+----------------------------------------------------
+Mapped cells           : 2633
+Estimated LUTs         : 639
+Estimated flip-flops   : 474
+CARRY4                 : 174
+MUXF                    : 101
+
+Readiness checks
+----------------------------------------------------
+Logical mapping        : PASS
+100 MHz constraint     : PASS
+Clock consistency      : PASS
+
+Validation boundary
+----------------------------------------------------
+Physical P&R           : NOT PERFORMED
+Static timing          : NOT PERFORMED
+Timing closure         : NOT CLAIMED
+Physical FPGA test     : NOT PERFORMED
+
+Conclusion
+----------------------------------------------------
+PASS - RTL is reproducibly mapped to Xilinx 7-series primitives with a declared 100 MHz implementation target.

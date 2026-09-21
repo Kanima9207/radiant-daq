@@ -1,0 +1,25 @@
+{
+  "milestone": "RTL-016",
+  "name": "FPGA implementation readiness",
+  "status": "pass",
+  "top": "radiant_daq_synth_top",
+  "target_family": "xilinx_7series",
+  "clock_target_mhz": 100.0,
+  "clock_period_ns": 10.0,
+  "mapped_cell_count": 2633,
+  "estimated_luts": 639,
+  "estimated_flip_flops": 474,
+  "carry4": 174,
+  "muxf": 101,
+  "checks": {
+    "xilinx7_logical_mapping": true,
+    "clock_constraint": true,
+    "clock_metadata_consistent": true
+  },
+  "constraint_note": "100 MHz / 10.000 ns clock intent declared",
+  "physical_place_and_route": "not performed",
+  "static_timing_analysis": "not performed",
+  "timing_closure": "not claimed",
+  "physical_fpga_validation": "not performed",
+  "scope": "Implementation-readiness benchmark based on reproducible Xilinx 7-series logical mapping and explicit timing intent. This result does not constitute placement/routing or post-route timing closure."
+}
